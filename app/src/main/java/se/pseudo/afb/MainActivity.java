@@ -31,22 +31,42 @@ public class MainActivity extends ActionBarActivity {
 
     private WebView webView;
     private ProgressDialog dialog;
-    private boolean loggedIn = false, firstLoad = true, firstFlickr = true;
+    private UserDetailsDialogFragment userDetails;
+
+    private boolean loggedIn = false, categoryLoaded = false, attemptAutoLogin = false;
 
     private int loadingCounter = 0;
 
     private static final String AFB_LOGIN = "http://www.afb.se/templates/AFAdminLogin.aspx?ReturnUrl=%2fredimo%2faptus%2fext_gw.jsp%3fmodule%3dwwwash";
+    private static final String AFB_CATEGORY = "http://aptusportal.afb.se/wwwash.aspx";
+    private static final String AFB_WASH = "http://aptusportal.afb.se/wwwashbookinglocationsforcategory.aspx?categoryId=1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         getWindow().requestFeature(Window.FEATURE_PROGRESS);
         super.onCreate(savedInstanceState);
 
+        setContentView(R.layout.activity_main);
+
+        setupWebView();
+
+        if(firstRun()) {
+            setUserDetails();
+        } else {
+            loadAFB();
+        }
+    }
+
+    private boolean firstRun() {
+        SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+        Log.d("GG", "FIRST RUN : " + sharedPref.getBoolean(getString(R.string.pref_firstrun), true));
+        return sharedPref.getBoolean(getString(R.string.pref_firstrun), true);
+    }
+
+    private void setupWebView() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true);
         }
-
-        setContentView(R.layout.activity_main);
 
         webView = (WebView) findViewById(R.id.webView);
         webView.getSettings().setJavaScriptEnabled(true);
@@ -55,20 +75,15 @@ public class MainActivity extends ActionBarActivity {
         webView.setPictureListener(new WebView.PictureListener() {
             @Override
             public void onNewPicture(WebView webView, Picture picture) {
-                if(webView.getUrl().equals(AFB_LOGIN) && !loggedIn && !needsSetup() && loadingCounter == 0) {
+                if(webView.getUrl().equals(AFB_LOGIN) && !loggedIn && !firstRun() && loadingCounter == 0 && attemptAutoLogin) {
                     login();
                 }
             }
         });
-        
+
+        // Fix Lollipop
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             webView.getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
-
-        if(needsSetup()) {
-            setUserDetails();
-        } else {
-            afb();
         }
     }
 
@@ -80,77 +95,63 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private boolean needsSetup() {
+    private void loadAFB() {
+        setDialog("Laddar AFB..");
+
+        // In case login box was up
+        if(userDetails != null)
+            userDetails.dismiss();
+
+        // Reset flags
+        loggedIn = false;
+        categoryLoaded = false;
+        attemptAutoLogin = false;
+
+        // Load login page
+        webView.loadUrl(AFB_LOGIN);
+    }
+
+    private void login() {
+        if(!webView.getUrl().equals(AFB_LOGIN)) {
+            Toast.makeText(MainActivity.this, "Login can only be triggered on the login page.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        setDialog("Loggar in..");
+
         final String def = "poop";
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
         String user = sharedPref.getString(getString(R.string.pref_username), def);
         String pw = sharedPref.getString(getString(R.string.pref_password), def);
 
-        Log.d("wtf", user + " " + pw + " " + ( user.equals(def )|| pw.equals(def)));
+        String js = String.format("document.getElementById(\"Username\").setAttribute(\"value\", \"%1$s\");document.getElementById(\"Password\").setAttribute(\"value\",\"%2$s\");document.getElementById(\"LoginImageButton\").click();", user, pw.replace("\"", "\\\""));
 
-        return user.equals(def)|| pw.equals(def);
-    }
 
-    private void afb() {
-        setDialog("Laddar AFB..");
-        webView.loadUrl(AFB_LOGIN);
-    }
-
-    private void login() {
-        if(webView.getUrl().equals(AFB_LOGIN)) {
-            setDialog("Loggar in..");
-
-            final String def = "poop";
-            SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-            String user = sharedPref.getString(getString(R.string.pref_username), def);
-            String pw = sharedPref.getString(getString(R.string.pref_password), def);
-
-            String js = String.format("document.getElementById(\"Username\").setAttribute(\"value\", \"%1$s\");document.getElementById(\"Password\").setAttribute(\"value\",\"%2$s\");document.getElementById(\"LoginImageButton\").click();", user, pw);
-
-            webView.evaluateJavascript(js, new ValueCallback<String>() {
-                @Override
-                public void onReceiveValue(String value) {
-                    loggedIn = true;
-                }
-            });
-        } else {
-            Toast.makeText(MainActivity.this, "Login can only be triggered on the login page.", Toast.LENGTH_SHORT).show();
-        }
+        webView.evaluateJavascript(js, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String value) {
+                loggedIn = true;
+            }
+        });
     }
 
     private void setUserDetails() {
-        UserDetailsDialogFragment dialog = new UserDetailsDialogFragment();
-        dialog.show(getFragmentManager(), "userdetails");
+        userDetails = new UserDetailsDialogFragment();
+        userDetails.setCancelable(false);
+        userDetails.show(getFragmentManager(), "userdetails");
     }
 
     @Override
     public void onResume() {
         super.onResume();  // Always call the superclass method first
-        loggedIn = false;
-        afb();
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+        if(userDetails != null)
+            userDetails.dismiss();
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                setUserDetails();
-                return true;
-
-            case R.id.action_login:
-                login();
-                return true;
-
-            default:
-                return super.onOptionsItemSelected(item);
-
+        if(firstRun()) {
+            setUserDetails();
+        } else {
+            loadAFB();
         }
     }
 
@@ -182,21 +183,46 @@ public class MainActivity extends ActionBarActivity {
             super.onPageFinished(view, url);
 
             if(--loadingCounter == 0) {
-                if(dialog != null) {
+                if (!attemptAutoLogin && url.equals(AFB_LOGIN) && !loggedIn) {
+                    attemptAutoLogin = true;
+                    return;
+                }
+
+                switch(url) {
+                    case AFB_LOGIN:
+                        loginFailed();
+                        return;
+                    case AFB_CATEGORY:
+                        redirectToWashingCategory();
+                        return;
+                }
+
+                if(categoryLoaded) {
                     dialog.dismiss();
                     dialog = null;
                 }
-
-                if(url.equals(AFB_LOGIN) && loggedIn) {
-                    if(!firstLoad) {
-                        Toast.makeText(MainActivity.this, "Seems like you were unable to login!", Toast.LENGTH_SHORT).show();
-                        setUserDetails();
-                    } else {
-                        firstLoad = false;
-                    }
-                }
             }
         }
+    }
+
+    private void loginFailed() {
+        loggedIn = false;
+        attemptAutoLogin = false;
+
+        dialog.dismiss();
+
+        Toast.makeText(MainActivity.this, R.string.login_failed, Toast.LENGTH_SHORT).show();
+
+        setUserDetails();
+    }
+
+    private void redirectToWashingCategory() {
+        // Login success -> Continue bouncing to Washing category :D
+        setDialog("Laddar bokningsida..");
+
+        categoryLoaded = true;
+
+        webView.loadUrl(AFB_WASH);
     }
 
     private class AFBWebChromeClient extends WebChromeClient {
@@ -233,34 +259,60 @@ public class MainActivity extends ActionBarActivity {
             // Pass null as the parent view because its going in the dialog layout
             builder.setView(view)
                     // Add action buttons
-                    .setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
+                    .setPositiveButton(MainActivity.this.loggedIn ? R.string.save : R.string.login, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int id) {
 
                             SharedPreferences.Editor editor = sharedPref.edit();
                             editor.putString(getString(R.string.pref_username), username.getText().toString());
                             editor.putString(getString(R.string.pref_password), password.getText().toString());
+                            editor.putBoolean(getString(R.string.pref_firstrun), false);
 
                             editor.commit();
 
-                            if (needsSetup()) {
-                                MainActivity.this.setUserDetails();
+                            if (AFB_LOGIN.equals(webView.getUrl())) {
+                                MainActivity.this.login();
                             } else {
-                                if (webView.getUrl().equals(AFB_LOGIN)) {
-                                    MainActivity.this.login();
-                                }
+                                loadAFB();
                             }
                         }
                     })
                     .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                         public void onClick(DialogInterface dialog, int id) {
-                            UserDetailsDialogFragment.this.getDialog().cancel();
+                            //UserDetailsDialogFragment.this.getDialog().cancel();
+                            getActivity().finish();
+                            System.exit(0);
                         }
                     });
 
            return builder.create();
         }
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                setUserDetails();
+                return true;
+
+            /*case R.id.action_login:
+                login();
+                return true;*/
+
+            default:
+                return super.onOptionsItemSelected(item);
+
+        }
+    }
 }
+
 
 

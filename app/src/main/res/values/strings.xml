@@ -2,19 +2,20 @@
 <resources>
 
     <string name="app_name">AFB</string>
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="action_login">Login</string>
+    <string name="action_settings">Inställningar</string>
 
     <string name="pref_username">user</string>
     <string name="pref_password">password</string>
 
-    <string name="username">user</string>
-    <string name="password">password</string>
+    <string name="username">Epost</string>
+    <string name="password">Lösenord</string>
 
     <string name="save">Spara</string>
-    <string name="cancel">Avbryt</string>
+    <string name="login">Logga in</string>
+    <string name="cancel">Avsluta</string>
 
+    <string name="login_failed">Inloggning misslyckades. Vänligen kontrollera inloggnings uppgifter.</string>
 
+    <string name="pref_firstrun">firstLaunch</string>
 
 </resources>
