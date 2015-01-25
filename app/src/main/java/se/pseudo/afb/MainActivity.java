@@ -13,7 +13,6 @@ import android.graphics.Picture;
 import android.os.Build;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -82,7 +81,9 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void setDialog(String msg) {
+    private void loadingDialog(int resId) {
+        String msg = getString(resId) + "..";
+
         if (dialog == null || !dialog.isShowing()) {
             dialog = ProgressDialog.show(this, "", msg, true, false);
         } else {
@@ -96,7 +97,7 @@ public class MainActivity extends ActionBarActivity {
             return;
         }
 
-        setDialog("Laddar AFB..");
+        loadingDialog(R.string.loading_afb);
 
         // Reset flags
         loggedIn = false;
@@ -114,7 +115,7 @@ public class MainActivity extends ActionBarActivity {
             return;
         }
 
-        setDialog("Loggar in..");
+        loadingDialog(R.string.loading_login);
 
         final String def = "poop";
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
@@ -173,7 +174,7 @@ public class MainActivity extends ActionBarActivity {
             loadingCounter = Math.max(loadingCounter, 1); // First request move it to 1.
 
             if(dialog == null) {
-                setDialog("Loading..");
+                loadingDialog(R.string.loading);
             }
         }
 
@@ -218,7 +219,7 @@ public class MainActivity extends ActionBarActivity {
 
     private void redirectToWashingCategory() {
         // Login success -> Continue bouncing to Washing category :D
-        setDialog("Laddar bokningsida..");
+        loadingDialog(R.string.loading_wash);
 
         categoryLoaded = true;
 

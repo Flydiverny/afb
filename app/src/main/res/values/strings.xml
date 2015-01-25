@@ -17,4 +17,8 @@
 
     <string name="login_failed">Inloggning misslyckades. Vänligen kontrollera inloggnings uppgifter.</string>
 
+    <string name="loading">Laddar</string>
+    <string name="loading_afb">Laddar AFB</string>
+    <string name="loading_login">Loggar in</string>
+    <string name="loading_wash">Laddar bokningsida</string>
 </resources>
