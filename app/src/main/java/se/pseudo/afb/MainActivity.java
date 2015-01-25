@@ -50,23 +50,18 @@ public class MainActivity extends ActionBarActivity {
 
         setupWebView();
 
-        if(firstRun()) {
-            setUserDetails();
-        } else {
-            loadAFB();
-        }
+        loadAFB();
     }
 
     private boolean firstRun() {
         SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
-        Log.d("GG", "FIRST RUN : " + sharedPref.getBoolean(getString(R.string.pref_firstrun), true));
         return sharedPref.getBoolean(getString(R.string.pref_firstrun), true);
     }
 
     private void setupWebView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        /*if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true);
-        }
+        }*/
 
         webView = (WebView) findViewById(R.id.webView);
         webView.getSettings().setJavaScriptEnabled(true);
@@ -96,11 +91,12 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void loadAFB() {
-        setDialog("Laddar AFB..");
+        if(firstRun()) {
+            setUserDetails();
+            return;
+        }
 
-        // In case login box was up
-        if(userDetails != null)
-            userDetails.dismiss();
+        setDialog("Laddar AFB..");
 
         // Reset flags
         loggedIn = false;
@@ -145,14 +141,11 @@ public class MainActivity extends ActionBarActivity {
     public void onResume() {
         super.onResume();  // Always call the superclass method first
 
+        // In case login box was up
         if(userDetails != null)
             userDetails.dismiss();
 
-        if(firstRun()) {
-            setUserDetails();
-        } else {
-            loadAFB();
-        }
+        loadAFB();
     }
 
     private class AFBWebViewClient extends WebViewClient {
@@ -302,10 +295,6 @@ public class MainActivity extends ActionBarActivity {
             case R.id.action_settings:
                 setUserDetails();
                 return true;
-
-            /*case R.id.action_login:
-                login();
-                return true;*/
 
             default:
                 return super.onOptionsItemSelected(item);
