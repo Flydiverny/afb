@@ -33,7 +33,7 @@ public class MainActivity extends ActionBarActivity {
     private ProgressDialog dialog;
     private UserDetailsDialogFragment userDetails;
 
-    private boolean loggedIn = false, categoryLoaded = false, attemptAutoLogin = false;
+    private boolean loggedIn = false, categoryLoaded = false, bounced = false, attemptAutoLogin = false;
 
     private int loadingCounter = 0;
 
@@ -101,6 +101,7 @@ public class MainActivity extends ActionBarActivity {
         // Reset flags
         loggedIn = false;
         categoryLoaded = false;
+        bounced = false;
         attemptAutoLogin = false;
 
         // Load login page
@@ -155,6 +156,11 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String urlNewString) {
+            if(urlNewString.equals(AFB_CATEGORY)) {
+                redirectToWashingCategory();
+                return true;
+            }
+
             loadingCounter++;
             webView.loadUrl(urlNewString);
             return true;
@@ -185,14 +191,15 @@ public class MainActivity extends ActionBarActivity {
                     case AFB_LOGIN:
                         loginFailed();
                         return;
-                    case AFB_CATEGORY:
-                        redirectToWashingCategory();
-                        return;
                 }
 
                 if(categoryLoaded) {
-                    dialog.dismiss();
-                    dialog = null;
+                    if(bounced) {
+                        dialog.dismiss();
+                        dialog = null;
+                    } else {
+                        bounced = true;
+                    }
                 }
             }
         }
